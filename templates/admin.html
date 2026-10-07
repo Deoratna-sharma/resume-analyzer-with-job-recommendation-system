@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — ResuMatch</title>
+<link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-brand"><span>🎯</span><span>ResuMatch Admin</span></div>
+  <div class="nav-user">
+    <span class="nav-user-name">{{ session.user_name }}</span>
+    <span class="nav-user-role">Admin</span>
+    <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Logout</a>
+  </div>
+</nav>
+
+<div class="container" style="padding:2.5rem 1.5rem">
+  <div style="margin-bottom:2rem">
+    <h1 style="font-size:1.6rem">⚙ Admin Panel</h1>
+    <p style="color:var(--text2);margin-top:.25rem">System maintenance, user management and oversight</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid-4" style="margin-bottom:2rem">
+    <div class="stat-card stat-blue"><div class="stat-num">{{ stats.users }}</div><div class="stat-label">Registered Candidates</div></div>
+    <div class="stat-card stat-green"><div class="stat-num">{{ stats.active_jobs }}</div><div class="stat-label">Active Job Roles</div></div>
+    <div class="stat-card stat-amber"><div class="stat-num">{{ stats.jobs }}</div><div class="stat-label">Total Jobs</div></div>
+    <div class="stat-card stat-purple"><div class="stat-num">{{ stats.apps }}</div><div class="stat-label">Total Applications</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('users',this)">👥 Users</button>
+    <button class="tab-btn" onclick="switchTab('jobs',this)">💼 Jobs</button>
+    <button class="tab-btn" onclick="switchTab('apps',this)">📨 Applications</button>
+    <button class="tab-btn" onclick="switchTab('contacts',this)">📩 Messages</button>
+  </div>
+
+  <!-- USERS TAB -->
+  <div class="tab-panel active" id="tab-users">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div style="font-size:.85rem;color:var(--text2)">All registered users</div>
+      <button class="btn btn-primary btn-sm" onclick="document.getElementById('addUserModal').classList.add('open')">+ Add User</button>
+    </div>
+    <div class="table-wrap card" style="padding:0">
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Registered</th><th>Action</th></tr></thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td style="color:var(--text3)">{{ u.id }}</td>
+            <td><strong>{{ u.name }}</strong></td>
+            <td style="color:var(--text2)">{{ u.email }}</td>
+            <td>
+              {% if u.role=='admin' %}<span class="badge badge-purple">Admin</span>
+              {% elif u.role=='hiring' %}<span class="badge badge-blue">Hiring</span>
+              {% else %}<span class="badge badge-green">Candidate</span>{% endif %}
+            </td>
+            <td style="color:var(--text2);font-size:.8rem">{{ u.created_at[:10] }}</td>
+            <td>
+              {% if u.role=='candidate' %}
+              <a href="{{ url_for('delete_user',uid=u.id) }}" class="btn btn-sm btn-danger"
+                onclick="return confirm('Delete this user?')">Delete</a>
+              {% else %}<span style="color:var(--text3);font-size:.8rem">Protected</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- JOBS TAB -->
+  <div class="tab-panel" id="tab-jobs">
+    <div class="table-wrap card" style="padding:0">
+      <table>
+        <thead><tr><th>Title</th><th>Department</th><th>Location</th><th>Experience</th><th>Salary</th><th>Openings</th><th>Posted By</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          {% for job in jobs %}
+          <tr>
+            <td><strong>{{ job.title }}</strong></td>
+            <td style="color:var(--text2)">{{ job.department }}</td>
+            <td>{{ job.location }}</td>
+            <td><span class="badge badge-blue">{{ job.min_experience }}+ yr</span></td>
+            <td style="color:var(--green);font-weight:600">{{ job.salary }}</td>
+            <td>{{ job.openings }}</td>
+            <td style="color:var(--text2)">{{ job.poster or 'System' }}</td>
+            <td>{% if job.is_active %}<span class="badge badge-green">Active</span>{% else %}<span class="badge badge-red">Closed</span>{% endif %}</td>
+            <td><a href="{{ url_for('admin_toggle_job',jid=job.id) }}" class="btn btn-sm btn-ghost">{% if job.is_active %}Deactivate{% else %}Activate{% endif %}</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- APPLICATIONS TAB -->
+  <div class="tab-panel" id="tab-apps">
+    <div class="table-wrap card" style="padding:0">
+      <table>
+        <thead><tr><th>Candidate</th><th>Email</th><th>Job Applied</th><th>Match Score</th><th>Status</th><th>Applied On</th></tr></thead>
+        <tbody>
+          {% for app in applications %}
+          <tr>
+            <td><strong>{{ app.full_name }}</strong></td>
+            <td style="color:var(--text2)">{{ app.email }}</td>
+            <td>{{ app.job_title }}</td>
+            <td>
+              <span style="font-weight:700;color:{% if app.match_score>=70 %}var(--green){% elif app.match_score>=40 %}var(--amber){% else %}var(--text3){% endif %}">{{ app.match_score }}%</span>
+            </td>
+            <td>
+              {% if app.status=='Applied' %}<span class="badge badge-blue">{{ app.status }}</span>
+              {% elif app.status=='Shortlisted' %}<span class="badge badge-green">{{ app.status }}</span>
+              {% elif app.status=='Interview' %}<span class="badge badge-amber">{{ app.status }}</span>
+              {% elif app.status=='Offered' %}<span class="badge badge-purple">{{ app.status }}</span>
+              {% elif app.status=='Rejected' %}<span class="badge badge-red">{{ app.status }}</span>
+              {% else %}<span class="badge badge-gray">{{ app.status }}</span>{% endif %}
+            </td>
+            <td style="color:var(--text2);font-size:.8rem">{{ app.applied_at[:10] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CONTACTS TAB -->
+  <div class="tab-panel" id="tab-contacts">
+    {% if contacts %}
+    <div style="display:grid;gap:1rem">
+      {% for msg in contacts %}
+      <div class="card" style="padding:1.25rem">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
+          <div>
+            <strong>{{ msg.name }}</strong>
+            <span style="color:var(--text2);font-size:.85rem;margin-left:.75rem">{{ msg.email }}</span>
+          </div>
+          <span style="color:var(--text3);font-size:.78rem">{{ msg.created_at[:10] }}</span>
+        </div>
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:.35rem">{{ msg.subject }}</div>
+        <p style="color:var(--text2);font-size:.85rem;line-height:1.5">{{ msg.message }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty"><div class="empty-icon">📩</div><h3>No messages yet</h3></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal-overlay" id="addUserModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">+ Add New User</span>
+      <button class="modal-close" onclick="document.getElementById('addUserModal').classList.remove('open')">✕</button>
+    </div>
+    <form method="POST" action="{{ url_for('admin_add_user') }}">
+      <div class="form-group"><label>Full Name *</label><input type="text" name="name" required placeholder="Jane Smith"></div>
+      <div class="form-group"><label>Email *</label><input type="email" name="email" required placeholder="jane@company.com"></div>
+      <div class="form-group"><label>Password *</label><input type="password" name="password" required minlength="6"></div>
+      <div class="form-group"><label>Role *</label>
+        <select name="role">
+          <option value="candidate">Candidate</option>
+          <option value="hiring">Hiring Team</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <button type="submit" class="btn btn-primary" style="flex:1">Create User</button>
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('addUserModal').classList.remove('open')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

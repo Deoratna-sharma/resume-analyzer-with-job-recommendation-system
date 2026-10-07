@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hiring Dashboard — ResuMatch</title>
+<link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}">
+<style>
+.candidate-detail{background:var(--bg);border-radius:9px;padding:1rem;margin:1rem 0;}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.6rem;}
+.detail-item .label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);}
+.detail-item .value{font-size:.85rem;font-weight:500;margin-top:.1rem;}
+.app-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:1.25rem;transition:border-color .2s;}
+.app-card:hover{border-color:var(--accent);}
+.app-header{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;margin-bottom:.75rem;}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-brand"><span>🎯</span><span>ResuMatch</span></div>
+  <div class="nav-links">
+    <a href="{{ url_for('hiring_dashboard') }}" class="active">Dashboard</a>
+  </div>
+  <div class="nav-user">
+    <span class="nav-user-name">{{ session.user_name }}</span>
+    <span class="nav-user-role">Hiring Team</span>
+    <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Logout</a>
+  </div>
+</nav>
+
+<div class="container" style="padding:2.5rem 1.5rem">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;flex-wrap:wrap;gap:1rem">
+    <div>
+      <h1 style="font-size:1.6rem">Hiring Dashboard</h1>
+      <p style="color:var(--text2);margin-top:.25rem">Review applications and manage job roles</p>
+    </div>
+    <button class="btn btn-primary" onclick="document.getElementById('addJobModal').classList.add('open')">
+      + Post New Job
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid-4" style="margin-bottom:2rem">
+    <div class="stat-card stat-blue"><div class="stat-num">{{ stats.total }}</div><div class="stat-label">Total Applications</div></div>
+    <div class="stat-card stat-amber"><div class="stat-num">{{ stats.new }}</div><div class="stat-label">New / Unreviewed</div></div>
+    <div class="stat-card stat-green"><div class="stat-num">{{ stats.shortlisted }}</div><div class="stat-label">Shortlisted</div></div>
+    <div class="stat-card stat-purple"><div class="stat-num">{{ stats.interview }}</div><div class="stat-label">In Interview</div></div>
+  </div>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat,msg in msgs %}
+    <div class="flash flash-{{ 'success' if cat=='success' else 'error' }}" style="margin-bottom:1.5rem">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('applications',this)">📨 Applications</button>
+    <button class="tab-btn" onclick="switchTab('jobs',this)">💼 Job Roles</button>
+  </div>
+
+  <!-- APPLICATIONS TAB -->
+  <div class="tab-panel active" id="tab-applications">
+    <!-- Job filter -->
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center">
+      <span style="font-size:.8rem;color:var(--text2);font-weight:600">Filter by job:</span>
+      <button class="filter-chip active" onclick="filterApps('all',this)" style="background:var(--white);border:1.5px solid var(--border);color:var(--text2);padding:.3rem .8rem;border-radius:99px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .18s">All</button>
+      {% for job in jobs %}
+      <button class="filter-chip" data-job="{{ job.id }}" onclick="filterApps('{{job.id}}',this)" style="background:var(--white);border:1.5px solid var(--border);color:var(--text2);padding:.3rem .8rem;border-radius:99px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .18s">{{ job.title }}</button>
+      {% endfor %}
+    </div>
+
+    <div style="display:grid;gap:1rem" id="appsList">
+      {% for app in applications %}
+      <div class="app-card" data-jobid="{{ app.job_id }}">
+        <div class="app-header">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.3rem">
+              <h3 style="font-size:1rem">{{ app.full_name }}</h3>
+              <span style="font-size:.75rem;color:var(--text2)">{{ app.candidate_email }}</span>
+            </div>
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap;font-size:.82rem;color:var(--text2)">
+              <span>📋 Applied for: <strong style="color:var(--text)">{{ app.job_title }}</strong></span>
+              <span>🏢 {{ app.department }}</span>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:1.3rem;font-weight:800;color:{% if app.match_score>=70 %}var(--green){% elif app.match_score>=40 %}var(--amber){% else %}var(--text3){% endif %}">{{ app.match_score }}%</div>
+            <div style="font-size:.7rem;color:var(--text3)">match</div>
+          </div>
+        </div>
+
+        <!-- Candidate details -->
+        <div class="candidate-detail">
+          <div class="detail-grid">
+            <div class="detail-item"><div class="label">Phone</div><div class="value">{{ app.phone or '—' }}</div></div>
+            <div class="detail-item"><div class="label">Education</div><div class="value">{{ app.education or '—' }}</div></div>
+            <div class="detail-item"><div class="label">Degree</div><div class="value">{{ app.degree or '—' }}</div></div>
+            <div class="detail-item"><div class="label">Experience</div><div class="value">{{ app.experience_years or 0 }} yr(s)</div></div>
+            <div class="detail-item"><div class="label">Location</div><div class="value">{{ app.city or '—' }}</div></div>
+            <div class="detail-item"><div class="label">Notice Period</div><div class="value">{{ app.notice_period or '—' }}</div></div>
+          </div>
+          {% if app.technical_skills %}
+          <div style="margin-top:.75rem">
+            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:.4rem">Skills</div>
+            <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+              {% for skill in app.technical_skills.split(',')[:10] %}
+              <span style="background:var(--accent-l);color:var(--accent);padding:.18rem .55rem;border-radius:5px;font-size:.72rem;font-weight:500">{{ skill.strip() }}</span>
+              {% endfor %}
+              {% if app.technical_skills.split(',')|length > 10 %}
+              <span style="background:var(--bg2);color:var(--text3);padding:.18rem .55rem;border-radius:5px;font-size:.72rem">+{{ app.technical_skills.split(',')|length - 10 }} more</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+          {% if app.linkedin %}
+          <div style="margin-top:.6rem;font-size:.8rem"><a href="{{ app.linkedin }}" target="_blank" style="color:var(--accent)">🔗 LinkedIn Profile</a></div>
+          {% endif %}
+        </div>
+
+        <!-- Applied on + current status -->
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem">
+          <div style="font-size:.78rem;color:var(--text3)">Applied {{ app.applied_at[:10] }}</div>
+          <div>
+            {% if app.status == 'Applied' %}<span class="badge badge-blue">{{ app.status }}</span>
+            {% elif app.status == 'Shortlisted' %}<span class="badge badge-green">{{ app.status }}</span>
+            {% elif app.status == 'Interview' %}<span class="badge badge-amber">{{ app.status }}</span>
+            {% elif app.status == 'Offered' %}<span class="badge badge-purple">{{ app.status }}</span>
+            {% elif app.status == 'Rejected' %}<span class="badge badge-red">{{ app.status }}</span>
+            {% else %}<span class="badge badge-gray">{{ app.status }}</span>{% endif %}
+          </div>
+        </div>
+
+        <!-- Update form -->
+        <form method="POST" action="{{ url_for('hiring_update') }}" style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border);display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end">
+          <input type="hidden" name="app_id" value="{{ app.id }}">
+          <div style="flex:1;min-width:160px">
+            <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);display:block;margin-bottom:.3rem">Update Status</label>
+            <select name="status" style="width:100%;background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:.5rem .75rem;font-family:inherit;font-size:.85rem;color:var(--text)">
+              {% for s in ['Applied','Shortlisted','Interview','Offered','Rejected'] %}
+              <option value="{{ s }}" {% if app.status==s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div style="flex:2;min-width:200px">
+            <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);display:block;margin-bottom:.3rem">Notes</label>
+            <input type="text" name="notes" placeholder="Add hiring notes..." value="{{ app.hiring_notes or '' }}"
+              style="width:100%;background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:.5rem .75rem;font-family:inherit;font-size:.85rem;color:var(--text)">
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">Save</button>
+        </form>
+      </div>
+      {% else %}
+      <div class="empty"><div class="empty-icon">📭</div><h3>No applications yet</h3><p>Applications will appear here once candidates apply.</p></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- JOBS TAB -->
+  <div class="tab-panel" id="tab-jobs">
+    <div class="table-wrap card" style="padding:0">
+      <table>
+        <thead><tr><th>Job Title</th><th>Department</th><th>Location</th><th>Min Exp</th><th>Salary</th><th>Openings</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          {% for job in jobs %}
+          <tr>
+            <td><strong>{{ job.title }}</strong></td>
+            <td style="color:var(--text2)">{{ job.department }}</td>
+            <td>{{ job.location }}</td>
+            <td><span class="badge badge-blue">{{ job.min_experience }}+ yr</span></td>
+            <td style="color:var(--green);font-weight:600">{{ job.salary }}</td>
+            <td>{{ job.openings }}</td>
+            <td>{% if job.is_active %}<span class="badge badge-green">Active</span>{% else %}<span class="badge badge-red">Closed</span>{% endif %}</td>
+            <td><a href="{{ url_for('toggle_job',job_id=job.id) }}" class="btn btn-sm {% if job.is_active %}btn-ghost{% else %}btn-green{% endif %}">{% if job.is_active %}Close{% else %}Reopen{% endif %}</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Job Modal -->
+<div class="modal-overlay" id="addJobModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">+ Post New Job Role</span>
+      <button class="modal-close" onclick="document.getElementById('addJobModal').classList.remove('open')">✕</button>
+    </div>
+    <form method="POST" action="{{ url_for('hiring_add_job') }}">
+      <div class="grid-2">
+        <div class="form-group"><label>Job Title *</label><input type="text" name="title" required placeholder="Software Engineer"></div>
+        <div class="form-group"><label>Department *</label><input type="text" name="department" required placeholder="Engineering"></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>Location</label><input type="text" name="location" placeholder="Bangalore / Remote"></div>
+        <div class="form-group"><label>Job Type</label>
+          <select name="type"><option>Full-time</option><option>Part-time</option><option>Internship</option><option>Contract</option></select></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>Min. Experience (years)</label><input type="number" name="min_experience" value="0" min="0" max="20"></div>
+        <div class="form-group"><label>Salary Range</label><input type="text" name="salary" placeholder="8–14 LPA"></div>
+      </div>
+      <div class="form-group"><label>Openings</label><input type="number" name="openings" value="1" min="1" max="15"></div>
+      <div class="form-group"><label>Required Skills (comma separated) *</label><input type="text" name="required_skills" required placeholder="python,sql,flask,javascript"></div>
+      <div class="form-group"><label>Required Education</label><input type="text" name="required_education" placeholder="B.Tech/BCA/M.Tech"></div>
+      <div class="form-group"><label>Job Description</label><textarea name="description" placeholder="Brief role description..."></textarea></div>
+      <div style="display:flex;gap:.75rem">
+        <button type="submit" class="btn btn-primary" style="flex:1">Post Job</button>
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('addJobModal').classList.remove('open')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

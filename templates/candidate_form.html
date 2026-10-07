@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Build Your Profile — ResuMatch</title>
+<link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}">
+<style>
+.form-page{max-width:720px;margin:0 auto;padding:2.5rem 1.5rem;}
+.step-panel{display:none;animation:fadeIn .3s ease;}
+.step-panel.active{display:block;}
+.nav-actions{display:flex;justify-content:space-between;align-items:center;margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);}
+.step-count{font-size:.8rem;color:var(--text2);font-weight:500;}
+.progress-bar{height:4px;background:var(--bg2);border-radius:99px;margin-bottom:2.5rem;overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .4s ease;}
+.panel-title{font-size:1.25rem;font-weight:700;margin-bottom:.35rem;}
+.panel-sub{color:var(--text2);font-size:.875rem;margin-bottom:1.75rem;}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-brand"><span>🎯</span><span>ResuMatch</span></div>
+  <div class="nav-user">
+    <span class="nav-user-name">{{ session.user_name }}</span>
+    <span class="nav-user-role">Candidate</span>
+    <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Logout</a>
+  </div>
+</nav>
+
+<div class="form-page">
+  <div style="margin-bottom:2rem">
+    <a href="{{ url_for('home') }}" style="color:var(--text2);font-size:.85rem;">← Home</a>
+    <h1 style="font-size:1.6rem;margin-top:.75rem">Build Your Profile</h1>
+    <p style="color:var(--text2)">Complete all steps to get personalised job recommendations</p>
+  </div>
+
+  <!-- Steps indicator -->
+  <div class="steps" id="stepsIndicator">
+    <div class="step active" id="si-1"><div class="step-num">1</div><span>Personal</span></div>
+    <div class="step-line" id="sl-1"></div>
+    <div class="step" id="si-2"><div class="step-num">2</div><span>Education</span></div>
+    <div class="step-line" id="sl-2"></div>
+    <div class="step" id="si-3"><div class="step-num">3</div><span>Experience</span></div>
+    <div class="step-line" id="sl-3"></div>
+    <div class="step" id="si-4"><div class="step-num">4</div><span>Skills</span></div>
+    <div class="step-line" id="sl-4"></div>
+    <div class="step" id="si-5"><div class="step-num">5</div><span>Other</span></div>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progressBar" style="width:20%"></div></div>
+
+  <div class="card" style="padding:2rem">
+    <form method="POST" id="profileForm">
+
+      <!-- STEP 1: Personal -->
+      <div class="step-panel active" id="panel-1">
+        <div class="panel-title">👤 Personal Information</div>
+        <div class="panel-sub">Tell us the basics about yourself</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" name="full_name" placeholder="Rahul Sharma" required value="{{ candidate.full_name if candidate else '' }}">
+          </div>
+          <div class="form-group">
+            <label>Phone Number *</label>
+            <input type="tel" name="phone" placeholder="+91 98765 43210" required value="{{ candidate.phone if candidate else '' }}">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Date of Birth</label>
+            <input type="date" name="dob" value="{{ candidate.dob if candidate else '' }}">
+          </div>
+          <div class="form-group">
+            <label>Gender</label>
+            <select name="gender">
+              <option value="">Select...</option>
+              {% for g in ['Male','Female','Non-binary','Prefer not to say'] %}
+              <option value="{{ g }}" {% if candidate and candidate.gender==g %}selected{% endif %}>{{ g }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>City *</label>
+            <input type="text" name="city" placeholder="Bangalore" required value="{{ candidate.city if candidate else '' }}">
+          </div>
+          <div class="form-group">
+            <label>State</label>
+            <input type="text" name="state" placeholder="Karnataka" value="{{ candidate.state if candidate else '' }}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>About You</label>
+          <textarea name="bio" placeholder="A brief professional summary about yourself...">{{ candidate.bio if candidate else '' }}</textarea>
+        </div>
+      </div>
+
+      <!-- STEP 2: Education -->
+      <div class="step-panel" id="panel-2">
+        <div class="panel-title">🎓 Education Details</div>
+        <div class="panel-sub">Your academic background helps match you to the right roles</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Highest Qualification *</label>
+            <select name="education" required>
+              <option value="">Select...</option>
+              {% for e in ['B.Tech/B.E','BCA','B.Sc','BBA','B.Com','BA','MBA','M.Tech','MCA','M.Sc','Ph.D','Diploma','Other'] %}
+              <option value="{{ e }}" {% if candidate and candidate.education==e %}selected{% endif %}>{{ e }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Degree / Course</label>
+            <input type="text" name="degree" placeholder="Computer Science & Engineering" value="{{ candidate.degree if candidate else '' }}">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Specialization</label>
+            <input type="text" name="specialization" placeholder="Artificial Intelligence" value="{{ candidate.specialization if candidate else '' }}">
+          </div>
+          <div class="form-group">
+            <label>Institution / University</label>
+            <input type="text" name="institution" placeholder="IIT Bangalore" value="{{ candidate.institution if candidate else '' }}">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Graduation Year</label>
+            <select name="graduation_year">
+              <option value="">Select...</option>
+              {% for y in range(2025,1995,-1) %}
+              <option value="{{ y }}" {% if candidate and candidate.graduation_year==y|string %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Percentage / CGPA</label>
+            <input type="text" name="percentage" placeholder="8.5 CGPA / 85%" value="{{ candidate.percentage if candidate else '' }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Experience -->
+      <div class="step-panel" id="panel-3">
+        <div class="panel-title">💼 Work Experience</div>
+        <div class="panel-sub">Share your professional background</div>
+        <div class="form-group">
+          <label>Total Years of Experience *</label>
+          <select name="experience_years" required>
+            {% for i in range(0,16) %}
+            <option value="{{ i }}" {% if candidate and candidate.experience_years==i %}selected{% endif %}>
+              {% if i==0 %}Fresher (0 years){% else %}{{ i }} year{{ 's' if i>1 else '' }}{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Current / Last Company</label>
+            <input type="text" name="current_company" placeholder="TechCorp Ltd." value="{{ candidate.current_company if candidate else '' }}">
+          </div>
+          <div class="form-group">
+            <label>Current / Last Role</label>
+            <input type="text" name="current_role" placeholder="Junior Developer" value="{{ candidate.current_role if candidate else '' }}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notice Period</label>
+          <select name="notice_period">
+            <option value="">Select...</option>
+            {% for n in ['Immediate','15 days','1 month','2 months','3 months','Currently serving notice'] %}
+            <option value="{{ n }}" {% if candidate and candidate.notice_period==n %}selected{% endif %}>{{ n }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- STEP 4: Skills -->
+      <div class="step-panel" id="panel-4">
+        <div class="panel-title">⚡ Skills & Expertise</div>
+        <div class="panel-sub">The more accurately you fill this, the better your job matches</div>
+        <div class="form-group">
+          <label>Technical Skills * (comma separated)</label>
+          <textarea name="technical_skills" placeholder="Python, JavaScript, Flask, SQL, HTML, CSS, React, Docker, Git..." required style="min-height:90px">{{ candidate.technical_skills if candidate else '' }}</textarea>
+          <div class="form-hint">💡 Include all tools, languages, frameworks and platforms you know</div>
+        </div>
+        <div class="form-group">
+          <label>Soft Skills (comma separated)</label>
+          <input type="text" name="soft_skills" placeholder="Communication, Leadership, Problem Solving, Teamwork..." value="{{ candidate.soft_skills if candidate else '' }}">
+        </div>
+        <div class="form-group">
+          <label>Certifications</label>
+          <input type="text" name="certifications" placeholder="AWS Certified, Google Analytics, Coursera Python..." value="{{ candidate.certifications if candidate else '' }}">
+        </div>
+        <div class="form-group">
+          <label>Key Projects</label>
+          <textarea name="projects" placeholder="E-commerce website with React & Node.js, ML-based recommendation engine...">{{ candidate.projects if candidate else '' }}</textarea>
+        </div>
+      </div>
+
+      <!-- STEP 5: Other -->
+      <div class="step-panel" id="panel-5">
+        <div class="panel-title">🔗 Additional Details</div>
+        <div class="panel-sub">Optional but helps your profile stand out</div>
+        <div class="form-group">
+          <label>LinkedIn Profile URL</label>
+          <input type="url" name="linkedin" placeholder="https://linkedin.com/in/your-name" value="{{ candidate.linkedin if candidate else '' }}">
+        </div>
+        <div class="form-group">
+          <label>Portfolio / GitHub URL</label>
+          <input type="url" name="portfolio" placeholder="https://github.com/yourname" value="{{ candidate.portfolio if candidate else '' }}">
+        </div>
+        <div style="background:var(--green-l);border:1px solid #bbf7d0;border-radius:10px;padding:1.25rem;margin-top:.5rem">
+          <div style="font-weight:700;margin-bottom:.4rem;color:var(--green)">🎉 Almost done!</div>
+          <p style="font-size:.875rem;color:var(--text2)">Click <strong>Analyse & Match</strong> to see your personalised job recommendations based on your skill match score.</p>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="nav-actions">
+        <button type="button" class="btn btn-ghost" id="prevBtn" onclick="changeStep(-1)" style="display:none">← Previous</button>
+        <span class="step-count" id="stepCount">Step 1 of 5</span>
+        <button type="button" class="btn btn-primary" id="nextBtn" onclick="changeStep(1)">Next →</button>
+        <button type="submit" class="btn btn-green" id="submitBtn" style="display:none">🔍 Analyse & Match</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
+

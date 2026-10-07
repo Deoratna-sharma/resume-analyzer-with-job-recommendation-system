@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>All Jobs — ResuMatch</title>
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}">
+  <style>
+    .jobs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .search-bar {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar">
+    <div class="nav-brand"><span>🎯</span><span>ResuMatch</span></div>
+    <div class="nav-links">
+      <a href="{{ url_for('home') }}">Home</a>
+      <a href="{{ url_for('all_jobs') }}" class="active">Jobs</a>
+      <a href="{{ url_for('contact') }}">Contact</a>
+    </div>
+    <div class="nav-cta">
+      {% if session.user_id %}
+      <a href="{{ url_for('recommendations') if session.user_role=='candidate' else url_for('hiring_dashboard') if session.user_role=='hiring' else url_for('admin_dashboard') }}"
+        class="btn btn-ghost btn-sm">Dashboard</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Logout</a>
+      {% else %}
+      <a href="{{ url_for('login') }}" class="btn btn-outline btn-sm">Login</a>
+      <a href="{{ url_for('signup') }}" class="btn btn-primary btn-sm">Sign Up</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <div class="container" style="padding:2.5rem 1.5rem">
+    <div style="margin-bottom:1.5rem">
+      <h1 style="font-size:1.6rem">Open Positions</h1>
+      <p style="color:var(--text2);margin-top:.25rem">{{ jobs|length }} role(s) currently open</p>
+    </div>
+
+    <!-- Search & filter -->
+    <form class="search-bar" method="GET">
+      <div style="flex:2;min-width:200px">
+        <label
+          style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);display:block;margin-bottom:.4rem">Search</label>
+        <input type="text" name="q" value="{{ q }}" placeholder="Job title or skill..."
+          style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:.6rem .9rem;font-family:inherit;font-size:.875rem;outline:none;color:var(--text)">
+      </div>
+      <div style="flex:1;min-width:140px">
+        <label
+          style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);display:block;margin-bottom:.4rem">Department</label>
+        <select name="dept"
+          style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:.6rem .9rem;font-family:inherit;font-size:.875rem;color:var(--text);outline:none">
+          <option value="">All</option>
+          {% for d in depts %}<option value="{{ d.department }}" {% if selected_dept==d.department %}selected{% endif
+            %}>{{ d.department }}</option>{% endfor %}
+        </select>
+      </div>
+      <div style="flex:1;min-width:140px">
+        <label
+          style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);display:block;margin-bottom:.4rem">Location</label>
+        <select name="loc"
+          style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:.6rem .9rem;font-family:inherit;font-size:.875rem;color:var(--text);outline:none">
+          <option value="">All</option>
+          {% for l in locs %}<option value="{{ l.location }}" {% if selected_loc==l.location %}selected{% endif %}>{{
+            l.location }}</option>{% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Search</button>
+      {% if q or selected_dept or selected_loc %}<a href="{{ url_for('all_jobs') }}"
+        class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+    </form>
+
+    {% if jobs %}
+    <div class="jobs-grid">
+      {% for job in jobs %}
+      <div class="job-card" style="animation: fadeInUp 0.4s ease {{ loop.index0 * 0.06 }}s both;">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
+            <div class="job-title">{{ job.title }}</div>
+            <span class="badge badge-green">{{ job.openings }} open</span>
+          </div>
+          <div class="job-company" style="margin-top:.2rem">{{ job.department }}</div>
+        </div>
+        <div class="job-meta">
+          <span class="badge badge-blue">📍 {{ job.location }}</span>
+          <span class="badge badge-gray">{{ job.type }}</span>
+          <span class="badge badge-amber">{{ job.min_experience }}+ yr</span>
+          <span class="badge badge-purple">🎓 {{ job.required_education }}</span>
+        </div>
+        <p style="font-size:.83rem;color:var(--text2);line-height:1.5">{{ job.description }}</p>
+        <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+          {% for skill in job.required_skills.split(',')[:6] %}
+          <span
+            style="background:var(--bg2);border:1px solid var(--border);color:var(--text2);padding:.18rem .6rem;border-radius:5px;font-size:.72rem;font-weight:500">{{
+            skill.strip() }}</span>
+          {% endfor %}
+        </div>
+        <div
+          style="display:flex;justify-content:space-between;align-items:center;padding-top:.5rem;border-top:1px solid var(--border)">
+          <span style="font-size:.85rem;font-weight:700;color:var(--green)">{{ job.salary }}</span>
+          <a href="{{ url_for('signup') }}" class="btn btn-primary btn-sm">Apply →</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">
+      <div class="empty-icon">🔍</div>
+      <h3>No jobs found</h3>
+      <p>Try adjusting your search filters.</p>
+    </div>
+    {% endif %}
+  </div>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResuMatch — Find Your Dream Job</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span>🎯</span>
+      <span>ResuMatch</span>
+      <span class="dot"></span>
+    </div>
+
+    <div class="nav-links">
+      <a href="{{ url_for('home') }}" class="active">Home</a>
+      <a href="{{ url_for('all_jobs') }}">Jobs</a>
+      <a href="#features">How It Works</a>
+      <a href="{{ url_for('contact') }}">Contact</a>
+    </div>
+
+    <div class="nav-cta">
+      {% if session.user_id %}
+        
+        {% if session.user_role == 'candidate' %}
+          <a href="{{ url_for('recommendations') }}" class="btn btn-ghost btn-sm">My Jobs</a>
+
+        {% elif session.user_role == 'hiring' %}
+          <a href="{{ url_for('hiring_dashboard') }}" class="btn btn-ghost btn-sm">Dashboard</a>
+
+        {% else %}
+          <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost btn-sm">Admin</a>
+        {% endif %}
+
+        <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Logout</a>
+
+      {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-outline btn-sm">Login</a>
+        <a href="{{ url_for('signup') }}" class="btn btn-primary btn-sm">Sign Up</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-eyebrow">🚀 Smart Job Matching Platform</div>
+
+      <h1>Find the Right Role.<br>Match by Your Skills.</h1>
+
+      <p>
+        Fill your profile once, and let our system match you to the best-fit roles
+        based on your skills, education, and experience.
+      </p>
+
+      <div class="hero-btns">
+        {% if not session.user_id %}
+          <a href="{{ url_for('signup') }}" class="btn btn-primary btn-lg">Get Started</a>
+          <a href="{{ url_for('login') }}" class="btn btn-ghost btn-lg">Already have an account?</a>
+        {% else %}
+          <a href="
+            {% if session.user_role == 'candidate' %}
+              {{ url_for('candidate_form') }}
+            {% elif session.user_role == 'hiring' %}
+              {{ url_for('hiring_dashboard') }}
+            {% else %}
+              {{ url_for('admin_dashboard') }}
+            {% endif %}
+          " class="btn btn-primary btn-lg">
+            Go to Dashboard →
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- COUNTERS -->
+  <section class="counter-strip">
+    <div class="container">
+      <div class="counter-wrap">
+
+        <div class="counter-item">
+          <div class="counter-num">{{ jobs|length }}</div>
+          <div class="counter-txt">Open Positions</div>
+        </div>
+
+        <div class="counter-item">
+          <div class="counter-num">{{ jobs|sum(attribute='openings') }}</div>
+          <div class="counter-txt">Total Openings</div>
+        </div>
+
+        <div class="counter-item">
+          <div class="counter-num">
+            {{ jobs | map(attribute='department') | unique | list | length }}
+          </div>
+          <div class="counter-txt">Departments</div>
+        </div>
+
+        <div class="counter-item">
+          <div class="counter-num">100%</div>
+          <div class="counter-txt">Skill-Based Matching</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- JOB LIST -->
+  <section class="jobs-section">
+    <div class="container">
+
+      <div class="section-head">
+        <div>
+          <div class="section-label">Current Openings</div>
+          <h2>Open Positions</h2>
+        </div>
+        <a href="{{ url_for('all_jobs') }}" class="btn btn-ghost btn-sm">View All →</a>
+      </div>
+
+      <div class="jobs-grid">
+
+        {% for job in jobs[:6] %}
+        {% set skills = job.required_skills.split(',') %}
+
+        <div class="job-card">
+
+          <div class="job-header">
+            <div>
+              <div class="job-title">{{ job.title }}</div>
+              <div class="job-company">{{ job.department }}</div>
+            </div>
+            <span class="badge badge-green">{{ job.openings }} open</span>
+          </div>
+
+          <div class="job-meta">
+            <span class="badge badge-blue">📍 {{ job.location }}</span>
+            <span class="badge badge-gray">{{ job.type }}</span>
+            <span class="badge badge-amber">{{ job.min_experience }}+ yr</span>
+          </div>
+
+          <p class="job-desc">{{ job.description }}</p>
+
+          <div class="job-skills">
+            {% for skill in skills[:5] %}
+              <span class="dept-tag">{{ skill.strip() }}</span>
+            {% endfor %}
+
+            {% if skills|length > 5 %}
+              <span class="dept-tag">+{{ skills|length - 5 }}</span>
+            {% endif %}
+          </div>
+
+          <div class="job-footer">
+            <span class="salary">{{ job.salary }}</span>
+            <a href="{{ url_for('signup') }}" class="btn btn-primary btn-sm">Apply Now →</a>
+          </div>
+
+        </div>
+        {% endfor %}
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <div class="container">
+
+      <div class="section-center">
+        <div class="section-label">How It Works</div>
+        <h2>Three steps to your next role</h2>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📝</div>
+          <h3>Create Profile</h3>
+          <p>Fill your resume with skills, education, and experience.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <h3>Analyse & Match</h3>
+          <p>We match your profile with job roles automatically.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🚀</div>
+          <h3>Apply Instantly</h3>
+          <p>Apply with one click and get real-time updates.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Track Status</h3>
+          <p>Track your application journey easily.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="container">
+      <h2>Ready to find your perfect role?</h2>
+      <p>Join today and get personalized job recommendations.</p>
+
+      {% if not session.user_id %}
+        <a href="{{ url_for('signup') }}" class="btn btn-white btn-lg">Create Free Account →</a>
+      {% else %}
+        <a href="{{ url_for('candidate_form') }}" class="btn btn-white btn-lg">Go to Dashboard →</a>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <p>© 2026 ResuMatch. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- JS -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+</html>

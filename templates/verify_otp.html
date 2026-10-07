@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verify OTP — ResuMatch</title>
+<link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}">
+<style>
+body{background:linear-gradient(135deg,#eff6ff 0%,#f8f7f4 100%);}
+.auth-page{min-height:100vh;}
+.back-link{position:fixed;top:1.25rem;left:1.5rem;display:flex;align-items:center;gap:.4rem;
+  color:var(--text2);font-size:.85rem;font-weight:500;}
+.back-link:hover{color:var(--text);opacity:1;}
+</style>
+</head>
+<body>
+<a href="{{ url_for('forgot_password') }}" class="back-link">← Back</a>
+
+<div class="auth-page">
+  <div class="auth-card" style="max-width:400px">
+    <div class="auth-logo">
+      <div class="logo-icon">📩</div>
+      <h2>Verify OTP</h2>
+      <p>Enter the 6-digit code sent to your email</p>
+    </div>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat,msg in msgs %}
+      <div class="flash flash-{{ 'success' if cat=='success' else 'error' }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="form-group">
+        <label>6-Digit OTP</label>
+        <input type="text" name="otp" placeholder="123456" pattern="\d{6}" maxlength="6" required style="text-align:center; letter-spacing:4px; font-size:1.2rem;">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">
+        Verify →
+      </button>
+    </form>
+  </div>
+</div>
+</body>
+</html>
